@@ -72,6 +72,8 @@ PORT       = int(os.environ.get("PORT", 8788))
 JOBS_DIR.mkdir(parents=True, exist_ok=True)
 
 JOBS: dict[str, dict] = {}
+REAUTH_EVENTS: dict[str, asyncio.Event] = {}  # job_id -> event, set when Claude needs reauth
+REAUTH_DONE: dict[str, asyncio.Event] = {}    # job_id -> event, set when token is fresh
 
 # ---------------------------------------------------------------------------
 # Models
@@ -270,6 +272,14 @@ async def run_build(job_id: str, request: BuildRequest, user: str, ws: Optional[
     job["status"] = "running"
     job["started_at"] = datetime.now(timezone.utc).isoformat()
 
+    # Reauth signalling: Claude Code can POST /jobs/{job_id}/reauth to trigger
+    # the Auth0 device code flow, then GET /jobs/{job_id}/reauth/wait to block
+    # until the user completes sign-in.
+    _reauth_trigger = asyncio.Event()
+    _reauth_done    = asyncio.Event()
+    REAUTH_EVENTS[job_id] = _reauth_trigger
+    REAUTH_DONE[job_id]   = _reauth_done
+
     workdir = JOBS_DIR / job_id
     workdir.mkdir(parents=True, exist_ok=True)
     log_path = workdir / "build.log"
@@ -302,7 +312,8 @@ async def run_build(job_id: str, request: BuildRequest, user: str, ws: Optional[
         # writes to ~/.polyctx/token-platform-<region> (what las actually reads)
         # plus a build-specific token file as fallback.
         # TODO: API KEY — next week swap for POLYAI_API_KEY.
-        env = {**os.environ, "ANTHROPIC_API_KEY": ANTHROPIC_API_KEY}
+        env = {**os.environ, "ANTHROPIC_API_KEY": ANTHROPIC_API_KEY,
+               "PTB_JOB_ID": job_id, "PTB_HOST": f"http://localhost:{PORT}"}
         if request.polyctx_token:
             import json as _json
             from datetime import datetime as _dt, timedelta as _td
@@ -473,7 +484,11 @@ async def run_build(job_id: str, request: BuildRequest, user: str, ws: Optional[
             except: return False
 
         async def _wait_for_reauth():
-            """Start Auth0 device code flow, stream URL to UI, wait for completion."""
+            """Start Auth0 device code flow, stream URL to UI, wait for completion.
+            Can be triggered externally via POST /jobs/{job_id}/reauth (from Claude Code).
+            """
+            _reauth_trigger.clear()   # reset so it can fire again later
+            _reauth_done.clear()
             import urllib.request as _urlreq, json as _json, urllib.parse as _urlparse
 
             AUTH0_DOMAIN = {
@@ -581,6 +596,7 @@ async def run_build(job_id: str, request: BuildRequest, user: str, ws: Optional[
                 log.warning(f"Could not push token back to Node: {e}")
 
             await emit("status", message="✅ Token refreshed — resuming push...")
+            _reauth_done.set()   # unblock Claude's GET /jobs/{job_id}/reauth/wait
 
         # Auto-fix flow folder and step file names before push
         import re as _re
@@ -807,6 +823,32 @@ async def cancel_job(job_id: str, user: str = Security(get_user)):
     job["error"] = "Cancelled by user"
     job["finished_at"] = now
     return {"ok": True, "job_id": job_id}
+
+@app.post("/jobs/{job_id}/reauth")
+async def trigger_reauth(job_id: str):
+    """Called by Claude Code (via curl) when it hits a token expiry.
+    Signals the running build to start the Auth0 device code flow."""
+    if job_id not in JOBS:
+        raise HTTPException(status_code=404, detail="Job not found")
+    ev = REAUTH_EVENTS.get(job_id)
+    if ev:
+        ev.set()
+        return {"ok": True, "message": "Reauth triggered"}
+    return {"ok": False, "message": "No reauth listener for this job"}
+
+@app.get("/jobs/{job_id}/reauth/wait")
+async def wait_for_reauth_done(job_id: str, timeout: int = 300):
+    """Long-poll — Claude curls this and blocks until reauth completes or times out."""
+    if job_id not in JOBS:
+        raise HTTPException(status_code=404, detail="Job not found")
+    done_ev = REAUTH_DONE.get(job_id)
+    if not done_ev:
+        raise HTTPException(status_code=409, detail="No reauth in progress")
+    try:
+        await asyncio.wait_for(asyncio.shield(done_ev.wait()), timeout=timeout)
+        return {"ok": True, "message": "Token refreshed — resume build"}
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=408, detail="Reauth timed out")
 
 @app.get("/jobs/{job_id}/logs")
 async def get_logs(job_id: str, offset: int = 0, user: str = Security(get_user)):

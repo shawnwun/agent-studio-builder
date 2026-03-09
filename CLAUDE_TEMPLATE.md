@@ -251,7 +251,17 @@ actions: |-
 ## ERROR REFERENCE
 
 **`401 JWT token exp claim failed`**
-Token expired. **Do NOT sleep or retry.** The build server handles token refresh automatically — a sign-in popup will appear for the user. Simply stop and wait. Do not run any more commands. The push will be retried by the server once the token is refreshed.
+Token expired. **Do NOT try to fix it yourself.** Instead, run these commands to trigger the auth popup in the user's browser and wait for them to sign in:
+
+```bash
+# Trigger the sign-in popup
+curl -s -X POST "$PTB_HOST/jobs/$PTB_JOB_ID/reauth"
+# Wait until user completes sign-in (blocks up to 5 min)
+curl -s "$PTB_HOST/jobs/$PTB_JOB_ID/reauth/wait?timeout=300"
+# Now retry the failing command
+```
+
+Use this whenever you see: `401`, `token expired`, `Unauthorized`, `Authentication failed`, or `can't compare offset-naive` from `las push` or any PolyAI CLI.
 
 **`No project configuration found`**
 You're in the wrong directory. Run `cd <ACCOUNT_ID>/<PROJECT_ID>/` first.
