@@ -316,8 +316,8 @@ async def run_build(job_id: str, request: BuildRequest, user: str, ws: Optional[
                "PTB_JOB_ID": job_id, "PTB_HOST": f"http://localhost:{PORT}"}
         if request.polyctx_token:
             import json as _json
-            from datetime import datetime as _dt, timedelta as _td
-            expires_at = (_dt.utcnow() + _td(minutes=14)).isoformat()
+            from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+            expires_at = (_dt.now(_tz.utc) + _td(minutes=14)).isoformat()
             token_data = _json.dumps({
                 "access_token":  request.polyctx_token,
                 "refresh_token": "",
