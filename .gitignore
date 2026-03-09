@@ -5,3 +5,4 @@ server.log
 *.bak-*
 .env
 .DS_Store
+ptb/server.log
