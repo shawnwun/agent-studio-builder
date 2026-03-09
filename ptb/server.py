@@ -418,10 +418,37 @@ async def run_build(job_id: str, request: BuildRequest, user: str, ws: Optional[
                                 tool_input = _json.loads(_pending_tool["input_json"]) if _pending_tool["input_json"] else {}
                             except Exception:
                                 tool_input = {}
+                            # Auth intercept: if Claude is trying to run auth-related commands
+                            # (polyctx, poly login, pip install polyai, etc.), trigger reauth ourselves
+                            if _pending_tool["name"] == "Bash":
+                                cmd = tool_input.get("command", "")
+                                import re as _re2
+                                _bad_auth_cmds = [
+                                    r"polyctx (profile|login|auth)",
+                                    r"poly (login|auth)",
+                                    r"pip.*install.*polyai",
+                                    r"pipx.*install.*polyai",
+                                    r"bazel run.*polyctx",
+                                ]
+                                if any(_re2.search(p, cmd, _re2.IGNORECASE) for p in _bad_auth_cmds):
+                                    log.info(f"Auth intercept: Claude tried '{cmd[:80]}' — triggering reauth instead")
+                                    await emit("status", message="🔐 Token expired — triggering sign-in popup...")
+                                    if not _token_fresh():
+                                        await _wait_for_reauth()
                             tool_info = _format_tool_label(_pending_tool["name"], tool_input)
                             if tool_info:
                                 await emit("tool", **tool_info)
                             _pending_tool = None
+
+                    elif msg_type == "tool_result":
+                        # Watch bash tool results for auth errors — trigger reauth if found
+                        for item in obj.get("content", []):
+                            output = item.get("text", "") if isinstance(item, dict) else ""
+                            if output and _is_auth_error(output) and not _token_fresh():
+                                log.info(f"Auth error in tool result — triggering reauth")
+                                await emit("status", message="🔐 Auth error detected — triggering sign-in popup...")
+                                await _wait_for_reauth()
+                                break
 
                     elif msg_type == "assistant":
                         for block in obj.get("message", {}).get("content", []):
