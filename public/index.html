@@ -841,6 +841,24 @@ async function _reconnectAndResume(jobId, offset) {
   input.placeholder = '⚡ Build in progress — resuming…';
   updateTopbar();
 
+  // Re-attach to the last agent bubble in the DOM so resumed events stream
+  // into the correct position (after the user message, not appended at bottom)
+  const allBubbleRows = chat.querySelectorAll('.msg-row:not(.user)');
+  const lastBubbleRow = allBubbleRows[allBubbleRows.length - 1];
+  if (lastBubbleRow) {
+    const existingBody = lastBubbleRow.querySelector('.bubble');
+    if (existingBody) {
+      _agentBody = existingBody;
+      // Re-create stream cursor inside the existing bubble
+      if (!_streamCursor) {
+        _streamCursor = document.createElement('span');
+        _streamCursor.className = 'cursor';
+        _agentBody.appendChild(_streamCursor);
+      }
+      _stream = _agentBody;
+    }
+  }
+
   // If there was partial reasoning, seed it into the new stream so tokens append naturally
   if (pendingReason) {
     _ensureStream();
