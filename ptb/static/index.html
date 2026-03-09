@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prompt to Build</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0d0d;
+      --surface:  #161616;
+      --border:   #2a2a2a;
+      --accent:   #7c6af7;
+      --accent2:  #4fd1c5;
+      --text:     #e2e2e2;
+      --muted:    #666;
+      --green:    #4ade80;
+      --red:      #f87171;
+      --yellow:   #fbbf24;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      --font-ui:   -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-ui);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+    header .badge {
+      font-size: 11px;
+      background: var(--accent);
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-weight: 500;
+    }
+
+    .layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 380px;
+      min-width: 320px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      gap: 16px;
+      overflow-y: auto;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 12px; color: var(--muted); font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; }
+
+    input, select, textarea {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--font-ui);
+      font-size: 14px;
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+    input:focus, textarea:focus { border-color: var(--accent); }
+
+    textarea { resize: vertical; min-height: 140px; line-height: 1.5; }
+
+    .field-row { display: flex; gap: 10px; }
+    .field-row .field { flex: 1; }
+
+    .api-key-row { display: flex; gap: 8px; }
+    .api-key-row input { flex: 1; font-family: var(--font-mono); font-size: 13px; }
+    .eye-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 0 12px;
+      font-size: 16px;
+    }
+
+    .build-btn {
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px;
+      width: 100%;
+      transition: opacity 0.15s, transform 0.1s;
+      margin-top: 4px;
+    }
+    .build-btn:hover:not(:disabled) { opacity: 0.88; }
+    .build-btn:active:not(:disabled) { transform: scale(0.98); }
+    .build-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+    }
+    .dot.running { background: var(--accent); animation: pulse 1s infinite; }
+    .dot.success { background: var(--green); animation: none; }
+    .dot.failed  { background: var(--red);   animation: none; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    .branch-badge {
+      background: #1a2a1a;
+      border: 1px solid #2a4a2a;
+      border-radius: 6px;
+      color: var(--green);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 8px 10px;
+      word-break: break-all;
+      display: none;
+    }
+
+    /* ── Terminal ── */
+    .terminal-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .terminal-toolbar {
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+    }
+    .tb-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .tb-dot.r { background: #ff5f57; }
+    .tb-dot.y { background: #febc2e; }
+    .tb-dot.g { background: #28c840; }
+    .terminal-toolbar span {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+    }
+    .clear-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 11px;
+      padding: 3px 8px;
+    }
+    .clear-btn:hover { color: var(--text); border-color: var(--muted); }
+
+    #terminal {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    #terminal .t-token  { color: var(--text); }
+    #terminal .t-status { color: var(--muted); font-style: italic; }
+    #terminal .t-done   { color: var(--green); font-weight: 600; }
+    #terminal .t-error  { color: var(--red); font-weight: 600; }
+    #terminal .t-warn   { color: var(--yellow); }
+    #terminal .t-divider{ color: var(--border); }
+    #terminal .t-meta   { color: var(--accent2); font-size: 11px; }
+
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 14px;
+      background: var(--accent);
+      vertical-align: text-bottom;
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+
+    /* scrollbar */
+    #terminal::-webkit-scrollbar { width: 6px; }
+    #terminal::-webkit-scrollbar-track { background: transparent; }
+    #terminal::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 12px;
+      color: var(--muted);
+    }
+    .empty-state .icon { font-size: 48px; opacity: 0.3; }
+    .empty-state p { font-size: 14px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Prompt to Build</h1>
+  <span class="badge">Beta</span>
+</header>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+
+    <div class="field">
+      <label>API Key</label>
+      <div class="api-key-row">
+        <input type="password" id="apiKey" placeholder="ptb-user1-..." autocomplete="off" />
+        <button class="eye-btn" onclick="toggleKey()">👁</button>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Account ID</label>
+        <input type="text" id="accountId" placeholder="PLATFORM" />
+      </div>
+      <div class="field">
+        <label>Region</label>
+        <input type="text" id="region" placeholder="uk-1" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Project ID</label>
+      <input type="text" id="projectId" placeholder="PROJECT-XXXXXXXX" />
+    </div>
+
+    <div class="field">
+      <label>What do you want to build?</label>
+      <textarea id="prompt" placeholder="Describe the agent you want to build. Be as specific or vague as you like — Claude will fill in the gaps.
+
+Example: Build a hotel booking agent for a Marriott property. Handle reservations, cancellations, and FAQs about amenities."></textarea>
+    </div>
+
+    <button class="build-btn" id="buildBtn" onclick="startBuild()">
+      ⚡ Build Agent
+    </button>
+
+    <div class="status-pill" id="statusPill" style="display:none">
+      <div class="dot" id="statusDot"></div>
+      <span id="statusText">—</span>
+    </div>
+
+    <div class="branch-badge" id="branchBadge"></div>
+
+  </aside>
+
+  <!-- Terminal -->
+  <div class="terminal-wrap">
+    <div class="terminal-toolbar">
+      <div class="tb-dot r"></div>
+      <div class="tb-dot y"></div>
+      <div class="tb-dot g"></div>
+      <span id="termLabel">idle</span>
+      <button class="clear-btn" onclick="clearTerm()">Clear</button>
+    </div>
+    <div id="terminal">
+      <div class="empty-state">
+        <div class="icon">🤖</div>
+        <p>Fill in the form and click Build Agent to start.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let ws = null;
+  let tokenSpan = null; // current inline token span
+  let cursorEl = null;
+
+  const $ = id => document.getElementById(id);
+
+  function toggleKey() {
+    const el = $('apiKey');
+    el.type = el.type === 'password' ? 'text' : 'password';
+  }
+
+  function clearTerm() {
+    $('terminal').innerHTML = '';
+    tokenSpan = null;
+    cursorEl = null;
+  }
+
+  function setStatus(state, text) {
+    const pill = $('statusPill');
+    pill.style.display = 'flex';
+    $('statusDot').className = 'dot ' + state;
+    $('statusText').textContent = text;
+  }
+
+  function appendToTerminal(cls, content, inline = false) {
+    const term = $('terminal');
+
+    // Remove empty state if present
+    const es = term.querySelector('.empty-state');
+    if (es) es.remove();
+
+    // Remove cursor from previous position
+    if (cursorEl && cursorEl.parentNode) cursorEl.remove();
+
+    if (inline && cls === 't-token') {
+      // Append raw text to current token span for streaming feel
+      if (!tokenSpan) {
+        tokenSpan = document.createElement('span');
+        tokenSpan.className = cls;
+        term.appendChild(tokenSpan);
+      }
+      tokenSpan.textContent += content;
+    } else {
+      tokenSpan = null; // reset on non-token messages
+      const span = document.createElement('span');
+      span.className = cls;
+      span.textContent = content;
+      term.appendChild(span);
+    }
+
+    // Re-add blinking cursor at end
+    cursorEl = document.createElement('span');
+    cursorEl.className = 'cursor';
+    term.appendChild(cursorEl);
+
+    // Auto-scroll
+    term.scrollTop = term.scrollHeight;
+  }
+
+  function removeCursor() {
+    if (cursorEl && cursorEl.parentNode) cursorEl.remove();
+    cursorEl = null;
+  }
+
+  function startBuild() {
+    const apiKey    = $('apiKey').value.trim();
+    const accountId = $('accountId').value.trim();
+    const projectId = $('projectId').value.trim();
+    const region    = $('region').value.trim();
+    const prompt    = $('prompt').value.trim();
+
+    if (!apiKey || !accountId || !projectId || !region || !prompt) {
+      alert('Please fill in all fields.');
+      return;
+    }
+
+    if (ws) { ws.close(); ws = null; }
+
+    clearTerm();
+    $('buildBtn').disabled = true;
+    $('branchBadge').style.display = 'none';
+    setStatus('running', 'Connecting...');
+    $('termLabel').textContent = `${projectId} — building`;
+
+    const host = window.location.host;
+    const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    ws = new WebSocket(`${proto}://${host}/ws/build?token=${encodeURIComponent(apiKey)}`);
+
+    ws.onopen = () => {
+      setStatus('running', 'Connected — starting build...');
+      ws.send(JSON.stringify({ account_id: accountId, project_id: projectId, region, prompt }));
+    };
+
+    ws.onmessage = (evt) => {
+      const msg = JSON.parse(evt.data);
+      switch (msg.type) {
+        case 'token':
+          appendToTerminal('t-token', msg.text, true);
+          break;
+        case 'status':
+          appendToTerminal('t-status', `\n[${msg.ts}] ${msg.message}\n`);
+          setStatus('running', msg.message);
+          break;
+        case 'divider':
+          appendToTerminal('t-divider', `\n${msg.message}\n`);
+          break;
+        case 'started':
+          appendToTerminal('t-meta', `\n[${msg.ts}] Job ${msg.job_id}\n`);
+          break;
+        case 'done':
+          removeCursor();
+          appendToTerminal('t-done', `\n\n✅ ${msg.message}${msg.branch ? `\nBranch: ${msg.branch}` : ''}\n`);
+          setStatus('success', 'Build complete');
+          $('termLabel').textContent = `${projectId} — done`;
+          if (msg.branch) {
+            $('branchBadge').textContent = `🌿 ${msg.branch}`;
+            $('branchBadge').style.display = 'block';
+          }
+          $('buildBtn').disabled = false;
+          break;
+        case 'error':
+          removeCursor();
+          appendToTerminal('t-error', `\n\n❌ Error: ${msg.message}\n`);
+          setStatus('failed', 'Build failed');
+          $('termLabel').textContent = `${projectId} — failed`;
+          $('buildBtn').disabled = false;
+          break;
+        case 'warning':
+          appendToTerminal('t-warn', `\n⚠️ ${msg.message}\n`);
+          break;
+      }
+    };
+
+    ws.onerror = () => {
+      removeCursor();
+      appendToTerminal('t-error', '\n❌ WebSocket error — check server and API key.\n');
+      setStatus('failed', 'Connection error');
+      $('buildBtn').disabled = false;
+    };
+
+    ws.onclose = () => {
+      removeCursor();
+      ws = null;
+    };
+  }
+
+  // Allow Cmd/Ctrl+Enter to submit
+  $('prompt').addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') startBuild();
+  });
+
+  // Restore saved values
+  ['apiKey','accountId','projectId','region'].forEach(id => {
+    const saved = localStorage.getItem('ptb_' + id);
+    if (saved) $(id).value = saved;
+    $(id).addEventListener('input', () => localStorage.setItem('ptb_' + id, $(id).value));
+  });
+</script>
+
+</body>
+</html>

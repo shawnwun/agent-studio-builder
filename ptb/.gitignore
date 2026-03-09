@@ -1,0 +1,14 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.DS_Store
+/tmp/
+
+# Infra state — contains IPs and API keys, never commit
+infra/.aws_config
+infra/.user_state.json
