@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PolyAI Agent Studio</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #1a1a1a;
+  color: #e8e8e4;
+  display: flex;
+  height: 100vh;
+}
+
+/* ─── Sidebar ─────────────────────────────────────────────── */
+.sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  background: #111;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 0;
+  border-right: 1px solid #2a2a2a;
+  overflow: hidden;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px 16px;
+  border-bottom: 1px solid #222;
+  margin-bottom: 8px;
+}
+.logo-icon {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.logo-text { font-size: 15px; font-weight: 700; color: #f0f0f0; }
+.logo-text span { color: #D9EE50; }
+
+.sidebar-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 10px 4px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #bbb;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: calc(100% - 20px);
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.12s, color 0.12s;
+}
+.sidebar-btn:hover { background: #1e1e1e; color: #f0f0f0; }
+.sidebar-btn.primary {
+  background: #1e1e1e;
+  color: #f0f0f0;
+  border: 1px solid #333;
+}
+.sidebar-btn.primary:hover { background: #252525; }
+.sidebar-btn-icon { font-size: 15px; }
+
+.sidebar-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #555;
+  padding: 12px 16px 4px;
+}
+
+.sidebar-project {
+  margin: 0 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  font-size: 12px;
+  cursor: pointer;
+}
+.sidebar-project:hover { background: #1e1e1e; border-color: #333; }
+.sidebar-project .sp-name { font-weight: 600; color: #e8e8e4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-project .sp-meta { color: #666; margin-top: 2px; font-size: 11px; }
+.sidebar-project .sp-region { display: inline-block; margin-top: 5px; font-size: 10px; color: #D9EE50; background: rgba(217,238,80,0.12); border-radius: 3px; padding: 1px 6px; }
+
+.sidebar-spacer { flex: 1; }
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-top: 1px solid #222;
+  margin-top: 4px;
+  cursor: pointer;
+}
+.sidebar-user:hover { background: #1a1a1a; }
+.sidebar-avatar {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: #2a2a2a;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; flex-shrink: 0;
+}
+.sidebar-user-name { font-size: 12px; color: #aaa; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-user-name strong { display: block; font-weight: 600; color: #e8e8e4; font-size: 13px; }
+
+/* ─── Main area ───────────────────────────────────────────── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #1a1a1a;
+}
+
+/* ─── Messages ────────────────────────────────────────────── */
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 0 16px;
+}
+.messages::-webkit-scrollbar { width: 4px; }
+.messages::-webkit-scrollbar-track { background: transparent; }
+.messages::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+.msg-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Welcome */
+.welcome {
+  max-width: 720px;
+  margin: 60px auto 0;
+  padding: 0 24px;
+  text-align: center;
+}
+.welcome h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #f0f0f0;
+  margin-bottom: 10px;
+  letter-spacing: -0.5px;
+}
+.welcome p { font-size: 15px; color: #888; line-height: 1.6; max-width: 480px; margin: 0 auto 32px; }
+.welcome-chips {
+  display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 40px;
+}
+.welcome-chip {
+  padding: 8px 14px;
+  background: #222;
+  border: 1px solid #333;
+  border-radius: 20px;
+  font-size: 13px;
+  color: #bbb;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.welcome-chip:hover { background: #282828; border-color: #444; color: #e8e8e4; }
+
+/* Messages */
+.msg {
+  display: flex;
+  gap: 14px;
+  padding: 16px 0;
+  align-items: flex-start;
+}
+.msg + .msg { border-top: none; }
+.msg-avatar {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  margin-top: 2px;
+}
+.msg.user .msg-avatar { background: #2a2a2a; }
+.msg.assistant .msg-avatar { background: transparent; overflow: hidden; border-radius: 50%; padding: 0; }
+.msg-content { flex: 1; min-width: 0; }
+.msg-name { font-size: 13px; font-weight: 600; color: #f0f0f0; margin-bottom: 6px; }
+.msg.user .msg-name { color: #aaa; }
+.msg-body { font-size: 14px; line-height: 1.7; color: #d4d4d4; }
+.msg.user .msg-body { color: #c8c8c8; }
+.msg-body p { margin-bottom: 12px; }
+.msg-body p:last-child { margin-bottom: 0; }
+.msg-body pre {
+  background: #111;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  margin: 10px 0;
+}
+.msg-body code { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12.5px; background: #222; padding: 2px 6px; border-radius: 4px; }
+.msg-body pre code { background: none; padding: 0; }
+.msg-body ul, .msg-body ol { padding-left: 20px; margin-bottom: 10px; }
+.msg-body li { margin-bottom: 4px; }
+
+/* Streaming cursor */
+.cursor { display: inline-block; width: 2px; height: 15px; background: #D9EE50; vertical-align: text-bottom; margin-left: 2px; animation: blink 1s step-end infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* Working indicator */
+.msg-thinking {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: #666;
+  padding: 4px 0;
+}
+.thinking-dots span {
+  display: inline-block;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: #555;
+  margin: 0 1.5px;
+  animation: tdot 1.2s ease-in-out infinite;
+}
+.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes tdot { 0%,60%,100%{transform:translateY(0);opacity:0.4} 30%{transform:translateY(-4px);opacity:1} }
+
+/* Branch pill */
+.branch-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(78,201,78,0.1); border: 1px solid rgba(78,201,78,0.25);
+  border-radius: 20px; padding: 4px 12px;
+  font-size: 12px; color: #4ec94e;
+  margin-top: 10px;
+}
+
+/* ─── Input ───────────────────────────────────────────────── */
+.input-area {
+  padding: 16px 24px 20px;
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+}
+.input-box {
+  background: #222;
+  border: 1px solid #333;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px 12px;
+  transition: border-color 0.15s;
+  position: relative;
+}
+.input-box:focus-within { border-color: #444; }
+#input {
+  background: none;
+  border: none;
+  outline: none;
+  color: #e8e8e4;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: none;
+  width: 100%;
+  max-height: 200px;
+}
+#input::placeholder { color: #555; }
+.input-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+.input-meta { font-size: 11px; color: #555; }
+.input-meta b { color: #777; }
+#send {
+  width: 32px; height: 32px;
+  background: #D9EE50;
+  border: none;
+  border-radius: 8px;
+  color: #111;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.12s;
+  font-weight: 700;
+}
+#send:hover { opacity: 0.85; }
+#send:disabled { opacity: 0.25; cursor: not-allowed; }
+
+/* ─── Auth modal ──────────────────────────────────────────── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200;
+}
+.modal {
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 16px;
+  padding: 32px;
+  width: 440px;
+  max-width: 95vw;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+}
+.modal-header { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+.modal-logo-icon {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.modal-logo-text { font-size: 17px; font-weight: 700; color: #f0f0f0; }
+.modal-logo-text span { color: #D9EE50; }
+.modal h2 { font-size: 17px; font-weight: 700; color: #f0f0f0; margin-bottom: 6px; }
+.modal p { font-size: 13px; color: #888; margin-bottom: 22px; line-height: 1.55; }
+.field { margin-bottom: 14px; }
+.field label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #666; display: block; margin-bottom: 5px; }
+.field input {
+  width: 100%; background: #252525;
+  border: 1px solid #333; border-radius: 8px;
+  padding: 10px 13px; color: #f0f0f0;
+  font-family: inherit; font-size: 13px; outline: none;
+  transition: border-color 0.15s;
+}
+.field input:focus { border-color: rgba(217,238,80,0.4); }
+.field-row { display: flex; gap: 10px; }
+.field-row .field { flex: 1; }
+.region-grid { display: flex; gap: 8px; }
+.region-btn {
+  flex: 1; padding: 9px 4px;
+  background: #252525; border: 2px solid #333;
+  border-radius: 8px; color: #888;
+  cursor: pointer; font-size: 12px; font-weight: 600;
+  text-align: center; transition: all 0.12s; font-family: inherit;
+}
+.region-btn:hover { border-color: #444; color: #ccc; }
+.region-btn.active { border-color: #D9EE50; color: #D9EE50; background: rgba(217,238,80,0.08); }
+.modal-btn {
+  width: 100%; padding: 11px;
+  background: #D9EE50; border: none; border-radius: 9px;
+  color: #111; font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: inherit; margin-top: 6px;
+  transition: opacity 0.12s;
+}
+.modal-btn:hover { opacity: 0.88; }
+.modal-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.modal-btn.ghost {
+  background: #252525; color: #ccc;
+  border: 1px solid #333;
+}
+.auth-state { display: flex; flex-direction: column; gap: 10px; }
+.auth-state.hidden { display: none; }
+.code-box {
+  background: #252525; border: 1px solid #333;
+  border-radius: 10px; padding: 18px; text-align: center;
+}
+.code-box .code { font-size: 26px; font-weight: 800; letter-spacing: 5px; color: #D9EE50; font-family: monospace; }
+.code-box .hint { font-size: 12px; color: #666; margin-top: 6px; }
+.auth-wait { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #777; justify-content: center; padding: 4px 0; }
+.auth-spinner { width: 15px; height: 15px; border: 2px solid #333; border-top-color: #D9EE50; border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.auth-error { font-size: 12px; color: #e05555; min-height: 18px; text-align: center; }
+.auth-progress { height: 2px; background: #2a2a2a; border-radius: 1px; overflow: hidden; margin-top: 4px; }
+.auth-progress-bar { height: 100%; background: #D9EE50; animation: prog 1.5s ease-in-out infinite; }
+@keyframes prog { 0%{width:5%} 50%{width:85%} 100%{width:100%} }
+.auth-done-icon { font-size: 36px; text-align: center; }
+.auth-done-text { font-size: 14px; font-weight: 600; color: #4ec94e; text-align: center; }
+
+/* ─── Streaming & build output ───────────────────────────────── */
+.msg-stream-text {
+  font-size: 14px;
+  line-height: 1.75;
+  color: #d4d4d4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.msg-stream-text.finalised {
+  white-space: normal;
+}
+.stream-cursor {
+  display: inline-block;
+  width: 2px; height: 15px;
+  background: #D9EE50;
+  vertical-align: text-bottom;
+  margin-left: 1px;
+  animation: blink 1s step-end infinite;
+  border-radius: 1px;
+}
+
+/* Tool file cards */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.tool-feed { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 12px; width: 100%; }
+.tool-card {
+  border-radius: 8px;
+  border: 1px solid #232323;
+  background: #161616;
+  overflow: hidden;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 12px;
+  animation: fadeSlideIn 0.18s ease;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.tool-card-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 11px;
+  border-bottom: 1px solid #1e1e1e;
+}
+.tool-card.write  .tool-card-header { background: rgba(78,201,78,0.06); }
+.tool-card.edit   .tool-card-header { background: rgba(79,193,255,0.06); }
+.tool-card.run    .tool-card-header { background: rgba(220,220,170,0.06); }
+.tool-card.read   .tool-card-header { background: rgba(120,120,120,0.04); }
+.tool-card.search .tool-card-header { background: rgba(197,134,192,0.05); }
+.tc-verb {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; padding: 2px 6px; border-radius: 4px; flex-shrink: 0;
+}
+.tool-card.write  .tc-verb { background: rgba(78,201,78,0.15);  color: #4ec94e; }
+.tool-card.edit   .tc-verb { background: rgba(79,193,255,0.15); color: #4fc1ff; }
+.tool-card.run    .tc-verb { background: rgba(220,220,170,0.15);color: #dcdcaa; }
+.tool-card.read   .tc-verb { background: rgba(130,130,130,0.12);color: #888; }
+.tool-card.search .tc-verb { background: rgba(197,134,192,0.15);color: #c586c0; }
+.tc-file { color: #e0e0e0; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.tc-lang {
+  font-size: 10px; color: #555; margin-left: auto; flex-shrink: 0;
+  background: #1e1e1e; padding: 1px 5px; border-radius: 3px;
+}
+.tool-card-preview {
+  padding: 6px 11px 8px;
+  font-size: 11px; line-height: 1.6;
+  color: #666;
+  white-space: pre;
+  overflow: hidden;
+  max-height: 64px;
+  border-top: 1px solid #1a1a1a;
+}
+.tool-card.run .tool-card-preview { color: #8a8a5a; }
+.tool-card.write .tool-card-preview { color: #507050; }
+.tool-card.edit  .tool-card-preview { color: #3a6080; }
+
+/* Thinking dots (improved) */
+.build-thinking {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0 4px;
+  font-size: 13px; color: #666;
+}
+.tdots { display: flex; gap: 4px; align-items: center; }
+.tdots span {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: #444;
+  animation: td 1.4s ease-in-out infinite;
+}
+.tdots span:nth-child(2) { animation-delay: 0.2s; }
+.tdots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes td { 0%,60%,100%{opacity:0.3;transform:scale(0.8)} 30%{opacity:1;transform:scale(1)} }
+
+/* Done message */
+.build-done {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px;
+  background: rgba(78,201,78,0.08);
+  border: 1px solid rgba(78,201,78,0.2);
+  border-radius: 8px;
+  font-size: 13px; color: #4ec94e;
+  margin-top: 10px;
+  font-weight: 500;
+}
+.branch-ref {
+  font-family: 'SF Mono', monospace;
+  font-size: 11px;
+  background: rgba(78,201,78,0.1);
+  border-radius: 4px;
+  padding: 1px 7px;
+  color: #6ee87a;
+}
+
+
+/* Reasoning block (collapsible) */
+.reason-block {
+  border: 1px solid #222;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  background: #111;
+}
+.reason-summary {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 12px; color: #666;
+  list-style: none;
+  user-select: none;
+}
+.reason-summary::-webkit-details-marker { display: none; }
+.reason-summary:hover { color: #888; }
+.reason-spinner {
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid #333; border-top-color: #666;
+  animation: spin 0.8s linear infinite; flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.reason-label { font-weight: 600; }
+.reason-count { margin-left: auto; font-size: 11px; color: #444; }
+details.reason-block[open] .reason-summary { border-bottom: 1px solid #1e1e1e; }
+.reason-body {
+  padding: 10px 14px;
+  font-size: 12.5px; line-height: 1.7; color: #777;
+  font-family: inherit;
+  white-space: pre-wrap;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.reason-body p { margin: 0 0 6px; }
+.stream-cursor {
+  display: inline-block; width: 2px; height: 13px;
+  background: #555; margin-left: 1px; vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.build-body { display: flex; flex-direction: column; gap: 4px; }
+
+
+/* Session list */
+.sidebar-section-label {
+  font-size: 10px; color: #444; text-transform: uppercase; letter-spacing: 0.07em;
+  padding: 8px 16px 4px; margin-top: 4px;
+}
+.session-item {
+  margin: 0 8px 2px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.1s;
+  border: 1px solid transparent;
+}
+.session-item:hover { background: #1a1a1a; }
+.session-item.active { background: #1e1e1e; border-color: #2a2a2a; }
+.session-item-title { font-size: 13px; color: #c0c0c0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+.session-item.active .session-item-title { color: #f0f0f0; }
+.session-item-meta { font-size: 11px; color: #555; margin-top: 2px; display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.session-item-region { font-size: 10px; color: #D9EE50; background: rgba(217,238,80,0.1); border-radius: 3px; padding: 1px 5px; }
+
+.session-item { position: relative; }
+.session-kill {
+  display: none;
+  position: absolute;
+  right: 6px; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none;
+  color: #555; font-size: 14px;
+  cursor: pointer; padding: 2px 5px;
+  border-radius: 4px; line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+.session-item:hover .session-kill { display: block; }
+.session-kill:hover { color: #e05555; background: rgba(224,85,85,0.1); }
+.session-item.building .session-kill { color: #888; }
+
+
+/* ── Building session animation ─────────────────────────── */
+@keyframes buildPulse {
+  0%, 100% { border-color: rgba(217,238,80,0.25); box-shadow: 0 0 0 0 rgba(217,238,80,0); }
+  50% { border-color: #D9EE50; box-shadow: 0 0 8px 2px rgba(217,238,80,0.35); }
+}
+.session-item.building {
+  animation: buildPulse 1.6s ease-in-out infinite;
+  border-color: rgba(217,238,80,0.4);
+}
+.session-item.building .session-item-title::after {
+  content: ' ⚡';
+}
+.session-item.session-locked {
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon"><img src="/polyai-logo.png" style="width:100%;height:100%;object-fit:cover;display:block;" alt="PolyAI"></div>
+    <div class="logo-text">PolyAI</div>
+  </div>
+
+  <button class="sidebar-btn primary" onclick="startNewBuild()">
+    <span class="sidebar-btn-icon">✏️</span> New build
+  </button>
+
+  <div class="sidebar-section-label">Builds</div>
+  <div id="session-list" style="overflow-y:auto;flex:1;"></div>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <div class="messages" id="chat">
+    <div class="welcome" id="welcome">
+      <h1>Build an AI agent</h1>
+      <p>Describe what you want to build and Agent Studio will create and deploy it automatically.</p>
+      <div class="welcome-chips">
+        <div class="welcome-chip" onclick="useChip(this)">Banking assistant with balance check</div>
+        <div class="welcome-chip" onclick="useChip(this)">Hotel booking agent with cancellation flows</div>
+        <div class="welcome-chip" onclick="useChip(this)">Healthcare appointment scheduler</div>
+        <div class="welcome-chip" onclick="useChip(this)">Retail order tracking agent</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width:720px;margin:0 auto;width:100%;padding:0 24px 4px;">
+    <div id="auth-banner" style="display:none;background:#2a1f4a;border:1px solid #4a3a7a;border-radius:10px;padding:12px 16px;font-size:12px;color:#aaa;margin-bottom:8px;"></div>
+  </div>
+
+  <div style="padding: 0 0 4px;">
+    <div class="input-area">
+      <div class="input-box">
+        <textarea id="input" rows="1" placeholder="Describe the agent you want to build…"></textarea>
+        <div class="input-footer">
+          <span class="input-meta">Press <b>⌘↵</b> to send</span>
+          <button id="send">↑</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Auth modal -->
+<div class="overlay" id="connect-screen">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-logo-icon"><img src="/polyai-logo.png" style="width:100%;height:100%;object-fit:cover;display:block;" alt="PolyAI"></div>
+      <div class="modal-logo-text">Poly<span>AI</span> Agent Studio</div>
+    </div>
+    <h2>New build</h2>
+    <p>Enter your project details and sign in to start building.</p>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Account ID</label>
+        <input type="text" id="setup-account" placeholder="PLATFORM" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label>Project ID</label>
+        <input type="text" id="setup-project" placeholder="PROJECT-XXXX" autocomplete="off" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Region</label>
+      <div class="region-grid">
+        <button class="region-btn" data-region="uk-1" onclick="selectRegion(this)">🇬🇧 uk-1</button>
+        <button class="region-btn active" data-region="us-1" onclick="selectRegion(this)">🇺🇸 us-1</button>
+        <button class="region-btn" data-region="eu-1" onclick="selectRegion(this)">🇪🇺 eu-1</button>
+      </div>
+    </div>
+
+    <div id="auth-idle" class="auth-state" style="margin-top:6px;">
+      <button class="modal-btn" id="signin-btn" onclick="startDeviceFlow(window._selectedRegion||'us-1')">Sign in with PolyAI →</button>
+      <div class="auth-error" id="auth-error"></div>
+    </div>
+
+    <div id="auth-code" class="auth-state hidden">
+      <div class="code-box">
+        <div class="code" id="user-code">----</div>
+        <div class="hint">Enter this code to authenticate</div>
+      </div>
+      <button class="modal-btn" id="open-login-btn">Open login page →</button>
+      <div class="auth-wait"><div class="auth-spinner"></div>Waiting for sign-in…</div>
+    </div>
+
+    <div id="auth-setup" class="auth-state hidden">
+      <div class="auth-wait"><div class="auth-spinner"></div><span id="auth-setup-text">Setting up project…</span></div>
+      <div class="auth-progress"><div class="auth-progress-bar"></div></div>
+    </div>
+
+    <div id="auth-done" class="auth-state hidden">
+      <span id="auth-email" style="display:none"></span>
+      <div class="auth-done-icon">✅</div>
+      <div class="auth-done-text">Connected!</div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+
+marked.setOptions({ breaks: true, gfm: true });
+const chat = document.getElementById('chat');
+const input = document.getElementById('input');
+const send = document.getElementById('send');
+let messages = [];
+
+function prefill(t) { input.value=t; input.focus(); input.style.height='auto'; input.style.height=Math.min(input.scrollHeight,160)+'px'; }
+function removeWelcome() { const w=document.getElementById('welcome'); if(w)w.remove(); }
+function scrollBottom() { chat.scrollTop=chat.scrollHeight; }
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function addUserMsg(text) {
+  removeWelcome();
+  const row=document.createElement('div'); row.className='msg-row user';
+  row.innerHTML=`<div class="avatar">you</div><div class="bubble">${escHtml(text)}</div>`;
+  chat.appendChild(row); scrollBottom();
+}
+
+// ── Streaming state ────────────────────────────────────────────────────────
+let _buildMsg = null;       // current assistant message wrapper
+let _reasonEl = null;       // reasoning text container
+let _toolFeed = null;       // tool card feed
+let _streamBuf = '';        // accumulated token text
+let _workTimer = null;
+let _workSecs = 0;
+let _workEl = null;
+
+function _ensureBuildMsg() {
+  if (_buildMsg) return;
+  const outer = document.createElement('div');
+  outer.className = 'msg-wrap';
+  const wrap = document.createElement('div');
+  wrap.className = 'msg assistant';
+  wrap.innerHTML =
+    '<div class="msg-avatar polyai-avatar"><img src="/polyai-logo.png" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;" alt="PolyAI"></div>' +
+    '<div class="msg-content">' +
+      '<div class="msg-name">Agent Studio</div>' +
+      '<div class="msg-body build-body"></div>' +
+    '</div>';
+  outer.appendChild(wrap);
+  chat.appendChild(outer);
+  _buildMsg = wrap.querySelector('.build-body');
+  scrollBottom();
+}
+
+function _ensureReasonEl() {
+  _ensureBuildMsg();
+  if (_reasonEl) return;
+  // collapsible thinking block
+  const details = document.createElement('details');
+  details.className = 'reason-block';
+  details.open = true;
+  details.innerHTML =
+    '<summary class="reason-summary">' +
+      '<span class="reason-spinner"></span>' +
+      '<span class="reason-label">Thinking…</span>' +
+      '<span class="reason-count"></span>' +
+    '</summary>' +
+    '<div class="reason-body"></div>';
+  _buildMsg.appendChild(details);
+  _reasonEl = details.querySelector('.reason-body');
+  _reasonEl._details = details;
+}
+
+function _ensureToolFeed() {
+  _ensureBuildMsg();
+  // close reasoning block if open
+  if (_reasonEl && _reasonEl._details && _reasonEl._details.open) {
+    _reasonEl._details.open = false;
+    const lbl = _reasonEl._details.querySelector('.reason-label');
+    const spinner = _reasonEl._details.querySelector('.reason-spinner');
+    if (lbl) lbl.textContent = 'Reasoning';
+    if (spinner) spinner.style.display = 'none';
+  }
+  if (_toolFeed) return;
+  _toolFeed = document.createElement('div');
+  _toolFeed.className = 'tool-feed';
+  _buildMsg.appendChild(_toolFeed);
+}
+
+function streamChunk(text) {
+  _ensureReasonEl();
+  _streamBuf += text;
+  // Stream tokens directly into reason body as text node
+  if (!_reasonEl._tn) {
+    _reasonEl._tn = document.createTextNode('');
+    _reasonEl.appendChild(_reasonEl._tn);
+    // blinking cursor
+    const cur = document.createElement('span');
+    cur.className = 'stream-cursor';
+    _reasonEl.appendChild(cur);
+    _reasonEl._cur = cur;
+  }
+  _reasonEl._tn.nodeValue += text;
+  // update word count in summary
+  const words = _streamBuf.split(/\s+/).filter(Boolean).length;
+  const cnt = _reasonEl._details.querySelector('.reason-count');
+  if (cnt) cnt.textContent = words + ' words';
+  scrollBottom();
+}
+
+function addToolCard(action, file, lang, preview) {
+  _ensureToolFeed();
+  const VERBS = { write:'Writing', edit:'Editing', run:'Running', read:'Reading', search:'Searching' };
+  const card = document.createElement('div');
+  card.className = 'tool-card ' + (action || 'run');
+  let previewHtml = '';
+  if (preview && preview.trim()) {
+    previewHtml = '<div class="tool-card-preview">' + preview.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
+  }
+  card.innerHTML =
+    '<div class="tool-card-header">' +
+      '<span class="tc-verb">' + (VERBS[action] || action) + '</span>' +
+      '<span class="tc-file">' + (file||'').replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</span>' +
+      (lang ? '<span class="tc-lang">' + lang + '</span>' : '') +
+    '</div>' +
+    previewHtml;
+  _toolFeed.appendChild(card);
+  scrollBottom();
+}
+
+function showWorking() {
+  if (_workEl) return _workEl;
+  _ensureBuildMsg();
+  const pill = document.createElement('div');
+  pill.className = 'working-pill';
+  pill.innerHTML = '<div class="spinner"></div><span class="working-label">Building…</span><span class="working-timer">0:00</span>';
+  _buildMsg.appendChild(pill);
+  scrollBottom();
+  _workSecs = 0;
+  _workTimer = setInterval(() => {
+    _workSecs++;
+    const t = pill.querySelector('.working-timer');
+    const mins = Math.floor(_workSecs / 60);
+    const secs = String(_workSecs % 60).padStart(2, '0');
+    if (t) t.textContent = mins + ':' + secs;
+  }, 1000);
+  _workEl = pill;
+  pill._remove = () => { clearInterval(_workTimer); _workTimer = null; pill.remove(); _workEl = null; };
+  return pill;
+}
+
+function finishStream(branch) {
+  // remove working pill
+  if (_workEl) { _workEl._remove(); }
+  // remove stream cursor
+  if (_reasonEl && _reasonEl._cur) { _reasonEl._cur.remove(); _reasonEl._cur = null; }
+  // render final reasoning as markdown
+  if (_reasonEl && _streamBuf.trim()) {
+    if (_reasonEl._tn) { _reasonEl._tn.nodeValue = ''; }
+    _reasonEl.innerHTML = marked.parse(_streamBuf.trim());
+    const lbl = _reasonEl._details?.querySelector('.reason-label');
+    const spin = _reasonEl._details?.querySelector('.reason-spinner');
+    const cnt = _reasonEl._details?.querySelector('.reason-count');
+    if (lbl) lbl.textContent = 'Reasoning';
+    if (spin) spin.style.display = 'none';
+    if (cnt) cnt.textContent = '';
+    _reasonEl._details.open = false;  // collapse when done
+  }
+  if (branch) {
+    _ensureBuildMsg();
+    const pill = document.createElement('div');
+    pill.className = 'build-done';
+    pill.innerHTML = '✅ Build complete &nbsp;<span class="branch-pill">🌿 ' + branch + '</span>&nbsp; Merge in Agent Studio to go live.';
+    _buildMsg.appendChild(pill);
+  }
+  // reset state
+  _buildMsg = null; _reasonEl = null; _toolFeed = null; _streamBuf = '';
+  scrollBottom();
+}
+
+function finaliseLineGroup() { finishStream(null); }
+function startLineGroup() {}
+
+async function sendMessage() {
+  const text=input.value.trim(); if(!text||send.disabled) return;
+
+  // Gate: require auth + project before building
+  if (!window._polyctxToken || !window._projectSetup) {
+    // No session at all — open modal as new build
+    if (!_activeSessionId || !_sessions.find(s => s.id === _activeSessionId)) {
+      window._pendingNewSession = true;
+      var acc = document.getElementById('setup-account'); if (acc) acc.value = '';
+      var proj = document.getElementById('setup-project'); if (proj) proj.value = '';
+    } else {
+      // Session exists but token missing — re-auth, pre-fill fields
+      var sess = _sessions.find(s => s.id === _activeSessionId);
+      if (sess) {
+        window._pendingNewSession = false;
+        var acc = document.getElementById('setup-account'); if (acc) acc.value = sess.accountId || '';
+        var proj = document.getElementById('setup-project'); if (proj) proj.value = sess.projectId || '';
+        document.querySelectorAll('.region-btn').forEach(b => b.classList.toggle('active', b.dataset.region === sess.region));
+        window._selectedRegion = sess.region;
+      }
+    }
+    await showConnectScreen();
+    if (!window._polyctxToken) return; // user cancelled
+  }
+
+  // Try silent token refresh; if expired and refresh fails, show re-auth modal
+  const expiry = parseInt(localStorage.getItem('polyctx-token-expiry') || '0');
+  if (Date.now() > expiry - 60000) {
+    try {
+      await refreshTokenIfNeeded();
+    } catch(e) {
+      // Silent refresh failed — show re-auth for this session
+      var sess = _sessions.find(s => s.id === _activeSessionId);
+      if (sess) {
+        window._pendingNewSession = false;
+        var acc = document.getElementById('setup-account'); if (acc) acc.value = sess.accountId || '';
+        var proj = document.getElementById('setup-project'); if (proj) proj.value = sess.projectId || '';
+        document.querySelectorAll('.region-btn').forEach(b => b.classList.toggle('active', b.dataset.region === sess.region));
+        window._selectedRegion = sess.region;
+      }
+      await showConnectScreen();
+      if (!window._polyctxToken) return;
+    }
+  }
+  input.value=''; input.style.height='auto'; send.disabled=true;
+  const buildSessId = _activeSessionId; // capture — never changes during this build
+  _buildingSessionId = buildSessId; _renderSessionList();
+  addUserMsg(text);
+  messages.push({role:'user', content:text});
+  const _buildSess = () => _sessions.find(s => s.id === buildSessId);
+  if (_buildSess()) { _buildSess().messages = messages.slice(); _saveSessions(); }
+  let assistantText='';
+  let reasoningText='';
+  _streamWrap = null; _streamBody = null; _streamCursor = null;
+
+  // ── v2: call /api/build, receive SSE forwarded from PTB WebSocket ──────
+  const res = await fetch('/api/build', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      messages,
+      region:        window._projectSetup?.region      || window._selectedRegion || 'us-1',
+      accountId:     window._projectSetup?.accountId   || null,
+      projectId:     window._projectSetup?.projectId   || null,
+      projectPath:   window._projectSetup?.projectPath || null,
+      polyctxToken:  window._polyctxToken               || null,
+    })
+  });
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const {done, value} = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, {stream: true});
+    const lines = buffer.split('\n'); buffer = lines.pop();
+    for (const line of lines) {
+      if (!line.startsWith('data: ') || line.trim() === 'data: [DONE]') continue;
+      let data; try { data = JSON.parse(line.slice(6)); } catch { continue; }
+
+      const isVisible = buildSessId === _activeSessionId;
+      if (data.type === 'token') {
+        if (isVisible) window.streamChunk(data.text);
+        assistantText += data.text;
+        // Snapshot to session every ~20 tokens so history survives mid-build nav
+        if (assistantText.length % 500 < data.text.length) {
+          if (_buildSess()) {
+            const snap = messages.slice();
+            if (assistantText) snap.push({role:'assistant', content: assistantText});
+            _buildSess().messages = snap; _saveSessions();
+          }
+        }
+
+      } else if (data.type === 'tool') {
+        if (isVisible) window.addToolCard(data.action, data.file, data.lang, data.preview);
+        const toolEntry = {role: 'tool', action: data.action, file: data.file, lang: data.lang, preview: data.preview};
+        messages.push(toolEntry);
+        if (_buildSess()) { _buildSess().messages = messages.slice(); _saveSessions(); }
+
+      } else if (data.type === 'status') {
+        if (isVisible) window.showWorking();
+
+      } else if (data.type === 'done') {
+        const branch = data.branch || null;
+        if (isVisible) window.finishStream(branch);
+        assistantText += '\n✅ Build complete!';
+        if (branch) messages.push({role: 'branch', branch: branch});
+        if (_buildSess()) { _buildSess().messages = messages.slice(); _saveSessions(); }
+
+      } else if (data.type === 'error') {
+        if (isVisible) { window.streamChunk('\n❌ ' + (data.message || 'Build failed. Please try again.')); window.finishStream(null); }
+        assistantText += '\n❌ ' + (data.message || 'Build failed.');
+
+      } else if (data.type === 'warning') {
+        if (isVisible) window.streamChunk('\n⚠️ ' + data.message);
+      }
+    }
+  }
+
+  window.finishStream(null);
+  finaliseLineGroup();
+  if (assistantText) {
+    messages.push({role: 'assistant', content: assistantText});
+    if (_buildSess()) { _buildSess().messages = messages.slice(); _saveSessions(); }
+  }
+  send.disabled = false;
+  _buildingSessionId = null;
+  // Re-enable input on whatever session is now active
+  var inputEl = document.getElementById('input');
+  if (inputEl) { inputEl.disabled = false; inputEl.placeholder = 'Describe the agent you want to build…'; }
+  _renderSessionList();
+  input.focus();
+}
+
+send.addEventListener('click',sendMessage);
+input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
+input.addEventListener('input',()=>{input.style.height='auto';input.style.height=Math.min(input.scrollHeight,160)+'px';});
+
+// Mid-build auth refresh banner
+function showAuthRequiredBanner(buildId) {
+  if(document.getElementById('auth-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'auth-banner';
+  banner.innerHTML = `
+    <div style="background:#7c3aed;color:#fff;padding:16px 20px;border-radius:12px;margin:12px 0;display:flex;align-items:center;gap:14px;box-shadow:0 4px 20px rgba(124,58,237,0.4)">
+      <span style="font-size:1.5rem">🔐</span>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:0.95rem">Session expired — your build is paused</div>
+        <div style="font-size:0.82rem;opacity:0.85;margin-top:2px">Sign in again to continue. The build will resume automatically.</div>
+      </div>
+      <button onclick="triggerRelogin('${buildId}')" style="background:#fff;color:#7c3aed;border:none;padding:8px 16px;border-radius:8px;font-weight:700;cursor:pointer;white-space:nowrap">Sign in again</button>
+    </div>`;
+  const chat = document.getElementById('chat');
+  chat.appendChild(banner);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function hideAuthRequiredBanner() {
+  const b = document.getElementById('auth-banner');
+  if(b) b.remove();
+}
+
+async function triggerRelogin(buildId) {
+  // Run the same device flow as initial login, then push token to the build
+  const region = window._selectedRegion || 'us-1';
+  try {
+    const startRes = await fetch('/api/auth/start', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({region})});
+    const startData = await startRes.json();
+    if(!startData.verification_uri_complete || !startData.device_code) throw new Error('Auth start failed');
+
+    // Update banner to show code
+    const banner = document.getElementById('auth-banner');
+    if(banner) banner.querySelector('div[style]').innerHTML = `
+      <div style="font-weight:700;font-size:0.95rem">🔐 Open this link to sign in:</div>
+      <a href="${startData.verification_uri_complete}" target="_blank" style="color:#fff;font-size:0.85rem;word-break:break-all">${startData.verification_uri_complete}</a>
+      <div style="font-size:0.8rem;opacity:0.8;margin-top:4px">Code: <strong>${startData.user_code}</strong> — waiting for sign-in...</div>`;
+
+    // Poll until complete
+    const interval = startData.interval || 5;
+    const pollTimer = setInterval(async () => {
+      try {
+        const pollRes = await fetch('/api/auth/poll', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({device_code: startData.device_code, region})});
+        const pollData = await pollRes.json();
+        if(pollData.access_token) {
+          clearInterval(pollTimer);
+          window._polyctxToken = pollData.access_token;
+          if(pollData.refresh_token) localStorage.setItem('polyctx-refresh-token', pollData.refresh_token);
+          localStorage.setItem('polyctx-token', pollData.access_token);
+          // Push fresh token to the active build
+          if(buildId) {
+            await fetch(`/api/build/${buildId}/token`, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({token: pollData.access_token})});
+          }
+          hideAuthRequiredBanner();
+          streamChunk('✅ Session refreshed — build continuing...\n');
+        }
+      } catch(e) { /* still polling */ }
+    }, interval * 1000);
+  } catch(e) {
+    alert('Re-login failed: ' + e.message);
+  }
+}
+
+// Device flow auth
+window._polyctxToken = localStorage.getItem('polyctx-token') || null;
+window._selectedRegion = localStorage.getItem('polyctx-region') || 'us-1';
+let _connectResolve, _pollInterval;
+
+async function refreshTokenIfNeeded() {
+  const expiry = parseInt(localStorage.getItem('polyctx-token-expiry') || '0');
+  if (Date.now() < expiry) return; // still valid
+  const refreshToken = localStorage.getItem('polyctx-refresh-token') || window._refreshToken;
+  const region = window._selectedRegion || 'us-1';
+  if (!refreshToken) { console.warn('No refresh token, re-auth needed'); return; }
+  try {
+    const r = await fetch('/api/auth/refresh', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ refresh_token: refreshToken, region }) }).then(r => r.json());
+    if (r.access_token) {
+      window._polyctxToken = r.access_token;
+      if (r.refresh_token) { window._refreshToken = r.refresh_token; localStorage.setItem('polyctx-refresh-token', r.refresh_token); }
+      localStorage.setItem('polyctx-token', r.access_token);
+      localStorage.setItem('polyctx-token-expiry', Date.now() + 13 * 60 * 1000);
+    }
+  } catch(e) { console.warn('Token refresh failed:', e); }
+}
+
+function showBadge(email) {
+  const existing = document.getElementById('token-badge');
+  if (existing) existing.remove();
+  const badge = document.createElement('div');
+  badge.className = 'token-badge'; badge.id = 'token-badge';
+  badge.innerHTML = '🔑 ' + (email || 'Connected') + ' <span style="opacity:0.5">·</span> <span style="text-decoration:underline">Switch</span>';
+  badge.onclick = () => { localStorage.removeItem('polyctx-token'); localStorage.removeItem('polyctx-email'); window._polyctxToken=null; document.getElementById('connect-screen').style.display='flex'; resetAuthUI(); };
+  var ta = document.getElementById('titlebar-actions'); if(ta) { var old = document.getElementById('token-badge'); if(old) old.remove(); ta.prepend(badge); }
+  var cb = document.getElementById('connect-btn'); if(cb) cb.style.display = 'none';
+}
+
+function resetAuthUI() {
+  document.getElementById('auth-idle').classList.remove('hidden');
+  document.getElementById('auth-code').classList.add('hidden');
+  document.getElementById('auth-done').classList.add('hidden');
+  ['auth-setup','auth-config'].forEach(id => { const el = document.getElementById(id); if(el) el.classList.add('hidden'); });
+  document.getElementById('auth-error').textContent = '';
+  if (_pollInterval) { clearInterval(_pollInterval); _pollInterval = null; }
+}
+
+async function startDeviceFlow(region) {
+  const accountId = (document.getElementById('setup-account')?.value || '').trim();
+  const projectId = (document.getElementById('setup-project')?.value || '').trim();
+  const errEl = document.getElementById('auth-error');
+  if (!accountId || !projectId) { errEl.textContent = 'Please enter Account ID and Project ID.'; return; }
+
+  window._selectedRegion = region;
+  localStorage.setItem('polyctx-region', region);
+  errEl.textContent = '';
+
+  try {
+    const r = await fetch('/api/auth/start', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ region }) }).then(r => r.json());
+    if (r.error) throw new Error(r.error);
+    document.getElementById('user-code').textContent = r.user_code;
+    document.getElementById('open-login-btn').onclick = () => window.open(r.verification_uri_complete, '_blank');
+    document.getElementById('auth-idle').classList.add('hidden');
+    document.getElementById('auth-code').classList.remove('hidden');
+    window.open(r.verification_uri_complete, '_blank');
+
+    let attempts = 0;
+    _pollInterval = setInterval(async () => {
+      attempts++;
+      if (attempts > 180) { clearInterval(_pollInterval); resetAuthUI(); document.getElementById('auth-error').textContent = 'Timed out. Please try again.'; return; }
+      const poll = await fetch('/api/auth/poll', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ device_code: r.device_code, region }) }).then(r => r.json());
+      if (poll.access_token) {
+        clearInterval(_pollInterval);
+        window._polyctxToken = poll.access_token;
+        if (poll.refresh_token) { window._refreshToken = poll.refresh_token; localStorage.setItem('polyctx-refresh-token', poll.refresh_token); }
+        localStorage.setItem('polyctx-token', poll.access_token);
+        localStorage.setItem('polyctx-token-expiry', Date.now() + 13 * 60 * 1000);
+        let email = '';
+        try { const p = JSON.parse(atob(poll.access_token.split('.')[1])); email = p['https://platform.polyai.app/api/user_email'] || ''; localStorage.setItem('polyctx-email', email); } catch(e) {}
+
+        // Now run project setup
+        document.getElementById('auth-code').classList.add('hidden');
+        document.getElementById('auth-setup').classList.remove('hidden');
+        document.getElementById('auth-setup-text').textContent = 'Pulling project from Agent Studio...';
+
+        try {
+          const setup = await fetch('/api/project/setup', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ accountId, projectId, region, mode: 'continue', token: poll.access_token })
+          }).then(r => r.json());
+          if (setup.error) throw new Error(setup.error);
+
+          window._projectSetup = { accountId, projectId, region, projectPath: setup.projectPath, buildTokenFile: setup.buildTokenFile };
+          localStorage.setItem('las-project-setup', JSON.stringify(window._projectSetup));
+
+          document.getElementById('auth-setup').classList.add('hidden');
+
+          if (setup.configSuggestions && (Object.keys(setup.configSuggestions.missing||{}).length || Object.keys(setup.configSuggestions.changed||{}).length)) {
+            // Show config suggestion card
+            renderConfigDiff(setup.configSuggestions);
+            document.getElementById('auth-config').classList.remove('hidden');
+          } else {
+            finishLogin(email, accountId, projectId);
+          }
+        } catch(setupErr) {
+          var _ase=document.getElementById('auth-setup-error'); if(_ase) _ase.textContent = '⚠️ ' + (setupErr.message.length > 120 ? setupErr.message.slice(0, 120) + '...' : setupErr.message);
+          document.getElementById('auth-setup-text').textContent = 'Setup failed.';
+          // Allow retry — show idle again after delay
+          setTimeout(() => { document.getElementById('auth-setup').classList.add('hidden'); resetAuthUI(); }, 3000);
+        }
+      } else if (poll.error && poll.error !== 'authorization_pending' && poll.error !== 'slow_down') {
+        clearInterval(_pollInterval);
+        document.getElementById('auth-error').textContent = poll.error_description || poll.error;
+        resetAuthUI();
+      }
+    }, (r.interval || 5) * 1000);
+  } catch(e) {
+    document.getElementById('auth-error').textContent = e.message;
+    resetAuthUI();
+  }
+}
+
+function showConnectScreen() {
+  return new Promise(resolve => {
+    _connectResolve = resolve;
+    resetAuthUI();
+    document.getElementById('connect-screen').style.display = 'flex';
+
+  });
+}
+
+// Hide connect screen on load always — only shown on-demand when user tries to build
+document.getElementById('connect-screen').style.display = 'none';
+if (window._polyctxToken) {
+  showBadge(localStorage.getItem('polyctx-email') || '');
+}
+
+// Project setup
+window._projectSetup = JSON.parse(localStorage.getItem('las-project-setup') || 'null');
+
+// (submitSetup and showSetupScreen removed — setup now happens in login flow)
+
+function renderConfigDiff(diff) {
+  var labels = {
+    eot: 'End-of-turn detection', prompts: 'Conversation prompts',
+    audio_enhancement: 'Audio enhancement (AI-Coustics)', filler_utterances: 'Filler utterances',
+    barge_in: 'Barge-in', asr: 'ASR settings', conversation_control: 'Conversation control',
+    smart_vad: 'Smart VAD', ragdoll: 'RAG settings', vad: 'VAD settings'
+  };
+  var subLabels = {
+    disable_itn: 'Disable ITN', disable_punctuation: 'Disable punctuation',
+    max_silence_count: 'Max silence count', max_extensions: 'Max VAD extensions',
+    max_extension_duration: 'Max extension duration', top_k: 'RAG top-k'
+  };
+  var rows = [];
+  Object.keys(diff.missing || {}).forEach(function(key) {
+    rows.push('<div class="diff-row"><span class="diff-badge add">new</span><span class="diff-key">' + (labels[key]||key) + '</span></div>');
+  });
+  Object.keys(diff.changed || {}).forEach(function(key) {
+    Object.keys(diff.changed[key]).forEach(function(k) {
+      var v = diff.changed[key][k];
+      var cur = v.current === undefined ? 'not set' : JSON.stringify(v.current);
+      rows.push('<div class="diff-row"><span class="diff-badge change">update</span><span class="diff-key">' + (subLabels[k]||k) + '</span><span class="diff-val">' + cur + ' &rarr; ' + JSON.stringify(v.optimal) + '</span></div>');
+    });
+  });
+  document.getElementById('config-diff-content').innerHTML = rows.join('');
+}
+
+async function applyConfig() {
+  const btn = document.querySelector('.btn-apply');
+  btn.textContent = 'Applying...'; btn.disabled = true;
+  try {
+    await fetch('/api/project/apply-config', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ projectPath: window._projectSetup.projectPath })
+    });
+  } catch(e) {}
+  document.getElementById('auth-config').classList.add('hidden');
+  const email = localStorage.getItem('polyctx-email') || '';
+  finishLogin(email, window._projectSetup.accountId, window._projectSetup.projectId);
+}
+
+function skipConfig() {
+  document.getElementById('auth-config').classList.add('hidden');
+  const email = localStorage.getItem('polyctx-email') || '';
+  finishLogin(email, window._projectSetup.accountId, window._projectSetup.projectId);
+}
+
+function finishLogin(email, accountId, projectId) {
+  var _ad = document.getElementById('auth-done'); if(_ad) _ad.classList.remove('hidden');
+  var _ae = document.getElementById('auth-email'); if(_ae) _ae.textContent = email + ' - ' + accountId + ' / ' + projectId;
+  setTimeout(() => {
+    document.getElementById('connect-screen').style.display = 'none';
+    showBadge(email);
+    showProjectBadge(accountId, projectId);
+    if (_connectResolve) _connectResolve(window._polyctxToken);
+  }, 1200);
+}
+
+function showProjectBadge(accountId, projectId) {
+  const existing = document.getElementById('project-badge');
+  if (existing) existing.remove();
+  const badge = document.createElement('div');
+  badge.className = 'project-badge'; badge.id = 'project-badge';
+  badge.textContent = accountId + ' / ' + projectId;
+  badge.title = 'Click to change project';
+  badge.style.cursor = 'pointer';
+  badge.onclick = () => {
+    const current = window._projectSetup || {};
+    setTimeout(() => {
+      const acc = document.getElementById('setup-account');
+      const proj = document.getElementById('setup-project');
+      if (acc) acc.value = current.accountId || '';
+      if (proj) proj.value = current.projectId || '';
+    }, 50);
+    document.getElementById('connect-screen').style.display = 'flex';
+    resetAuthUI();
+  };
+  var ta = document.getElementById('titlebar-actions'); if(ta) { var old = document.getElementById('token-badge'); if(old) old.remove(); ta.prepend(badge); }
+}
+
+// ── Session management ─────────────────────────────────────────────────────
+// Each session: { id, title, accountId, projectId, region, projectPath, token, messages }
+var _sessions = JSON.parse(localStorage.getItem('ptb-sessions') || '[]');
+var _activeSessionId = null;
+var _buildingSessionId = null; // session currently building
+
+function _saveSessions() {
+  localStorage.setItem('ptb-sessions', JSON.stringify(_sessions));
+}
+
+function _renderSessionList() {
+  var list = document.getElementById('session-list');
+  if (!list) return;
+  list.innerHTML = '';
+  if (_sessions.length === 0) {
+    list.innerHTML = '<div style="padding:12px 16px;font-size:12px;color:#444;">No builds yet.<br>Click New build to start.</div>';
+    return;
+  }
+  _sessions.slice().reverse().forEach(function(sess) {
+    var isBuilding = sess.id === _buildingSessionId;
+    var isOtherBuilding = _buildingSessionId && !isBuilding;
+    var item = document.createElement('div');
+    item.className = 'session-item' +
+      (sess.id === _activeSessionId ? ' active' : '') +
+      (isBuilding ? ' building' : '') +
+      (isOtherBuilding ? ' session-locked' : '');
+    item.dataset.id = sess.id;
+    var regionFlags = { 'uk-1': '🇬🇧', 'us-1': '🇺🇸', 'eu-1': '🇪🇺' };
+    var flag = regionFlags[sess.region] || '';
+    item.innerHTML =
+      '<div class="session-item-title">' + (sess.title || sess.accountId + ' / ' + sess.projectId) + '</div>' +
+      '<div class="session-item-meta">' + sess.accountId + ' / ' + sess.projectId + '<span class="session-item-region">' + flag + ' ' + sess.region + '</span></div>' +
+      '<button class="session-kill" title="Remove session">✕</button>';
+    item.onclick = function() { _switchSession(sess.id); };
+    item.querySelector('.session-kill').onclick = function(e) {
+      e.stopPropagation();
+      _killSession(sess.id);
+    };
+    list.appendChild(item);
+  });
+}
+
+function _switchSession(id) {
+  var sess = _sessions.find(function(s) { return s.id === id; });
+  if (!sess) return;
+  // Save current session messages before switching
+  if (_activeSessionId && _activeSessionId !== id) {
+    var cur = _sessions.find(function(s) { return s.id === _activeSessionId; });
+    if (cur) { cur.messages = messages.slice(); _saveSessions(); }
+  }
+  _activeSessionId = id;
+  // Restore project setup + token
+  window._projectSetup = {
+    accountId: sess.accountId,
+    projectId: sess.projectId,
+    region: sess.region,
+    projectPath: sess.projectPath || null,
+  };
+  window._polyctxToken = sess.token || null;
+  // Clear chat and replay messages
+  messages = sess.messages || [];
+  _buildMsg = null; _reasonEl = null; _toolFeed = null; _streamBuf = '';
+  var chatEl = document.getElementById('chat');
+  chatEl.innerHTML = '';
+  if (messages.length === 0) {
+    var w = document.createElement('div'); w.className = 'welcome'; w.id = 'welcome';
+    w.innerHTML = '<h1>Build an AI agent</h1><p>Describe what you want to build and Agent Studio will create and deploy it automatically.</p><div class="welcome-chips"><div class="welcome-chip" onclick="useChip(this)">Banking assistant with balance check</div><div class="welcome-chip" onclick="useChip(this)">Hotel booking agent with cancellation flows</div><div class="welcome-chip" onclick="useChip(this)">Healthcare appointment scheduler</div><div class="welcome-chip" onclick="useChip(this)">Retail order tracking agent</div></div>';
+    chatEl.appendChild(w);
+  } else {
+    // Replay full history: user, assistant, tool cards, branch pills
+    messages.forEach(function(m, idx) {
+      if (m.role === 'user') {
+        // Close any open assistant block first
+        if (_buildMsg) { finishStream(null); }
+        addUserMsg(m.content || '');
+
+      } else if (m.role === 'assistant') {
+        if (m.content && m.content.trim()) {
+          _ensureBuildMsg();
+          // Render as markdown directly — bypass streaming/reasoning path
+          var bodyEl = _buildMsg.closest ? _buildMsg : null;
+          if (!bodyEl) { _ensureBuildMsg(); }
+          var mdDiv = document.createElement('div');
+          mdDiv.className = 'stream-text';
+          mdDiv.innerHTML = (typeof marked !== 'undefined') ? marked.parse(m.content.trim()) : m.content.replace(/\n/g,'<br>');
+          _buildMsg.appendChild(mdDiv);
+        }
+        // Close block if next message is user or end of history
+        var next = messages[idx + 1];
+        if (!next || next.role === 'user') {
+          if (_buildMsg) { finishStream(null); }
+        }
+
+      } else if (m.role === 'tool') {
+        if (!_buildMsg) _ensureBuildMsg();
+        addToolCard(m.action, m.file, m.lang, m.preview);
+
+      } else if (m.role === 'branch') {
+        if (!_buildMsg) _ensureBuildMsg();
+        var pill = document.createElement('div');
+        pill.className = 'build-done';
+        pill.innerHTML = '✅ Build complete &nbsp;<span class="branch-pill">🌿 ' + m.branch + '</span>&nbsp; Merge in Agent Studio to go live.';
+        _buildMsg.appendChild(pill);
+        finishStream(null);
+      }
+    });
+    if (_buildMsg) finishStream(null); // close any trailing open block
+  }
+  // If switching back to the actively building session, re-open the stream block
+  if (id === _buildingSessionId) {
+    _ensureBuildMsg();
+    // Re-render any in-progress tool cards not yet in messages (none needed — already saved live)
+  }
+  _renderSessionList();
+  // Disable input if a different session is currently building
+  var inputEl = document.getElementById('input');
+  var sendEl = document.getElementById('send');
+  var buildingElsewhere = _buildingSessionId && _buildingSessionId !== id;
+  if (inputEl) {
+    inputEl.disabled = buildingElsewhere;
+    inputEl.placeholder = buildingElsewhere
+      ? '⚡ Build in progress in another session…'
+      : 'Describe the agent you want to build…';
+  }
+  if (sendEl && buildingElsewhere) sendEl.disabled = true;
+  // If token expired or missing, re-auth
+  if (!window._polyctxToken) _reAuthSession(sess);
+}
+
+function _reAuthSession(sess) {
+  // Pre-fill the modal with the session's project details
+  var acc = document.getElementById('setup-account'); if (acc) acc.value = sess.accountId || '';
+  var proj = document.getElementById('setup-project'); if (proj) proj.value = sess.projectId || '';
+  // Set region
+  document.querySelectorAll('.region-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.region === sess.region);
+  });
+  window._selectedRegion = sess.region;
+  document.getElementById('connect-screen').style.display = 'flex';
+  resetAuthUI();
+}
+
+
+function _killSession(id) {
+  // Don't kill an actively building session
+  if (id === _buildingSessionId) {
+    if (!confirm('This session has an active build. Kill it anyway?')) return;
+    _buildingSessionId = null;
+  }
+  var idx = _sessions.findIndex(function(s) { return s.id === id; });
+  if (idx === -1) return;
+  _sessions.splice(idx, 1);
+  _saveSessions();
+  // If we killed the active session, switch to the next available one
+  if (_activeSessionId === id) {
+    _activeSessionId = null;
+    messages = [];
+    _buildMsg = null; _reasonEl = null; _toolFeed = null; _streamBuf = '';
+    if (_sessions.length > 0) {
+      _switchSession(_sessions[_sessions.length - 1].id);
+    } else {
+      // No sessions left — show welcome
+      var chatEl = document.getElementById('chat');
+      chatEl.innerHTML = '<div class="welcome" id="welcome"><h1>Build an AI agent</h1><p>Describe what you want to build and Agent Studio will create and deploy it automatically.</p></div>';
+      _renderSessionList();
+    }
+  } else {
+    _renderSessionList();
+  }
+}
+
+// ── startNewBuild — opens modal for new session setup ─────────────────────
+function startNewBuild() {
+  // Clear fields for fresh session
+  var acc = document.getElementById('setup-account'); if (acc) acc.value = '';
+  var proj = document.getElementById('setup-project'); if (proj) proj.value = '';
+  document.getElementById('connect-screen').style.display = 'flex';
+  resetAuthUI();
+  window._pendingNewSession = true;
+}
+
+// ── finishLogin override ─────────────────────────────────────────────────
+var _origFinishLogin = window.finishLogin;
+window.finishLogin = function(email, accountId, projectId) {
+  var _ad = document.getElementById('auth-done'); if (_ad) _ad.classList.remove('hidden');
+  var _ae = document.getElementById('auth-email'); if (_ae) _ae.textContent = email;
+  setTimeout(function() {
+    document.getElementById('connect-screen').style.display = 'none';
+    var region = (window._projectSetup && window._projectSetup.region) || window._selectedRegion || 'us-1';
+
+    if (window._pendingNewSession) {
+      window._pendingNewSession = false;
+      // Create new session
+      var sid = 'sess-' + Date.now();
+      var newSess = {
+        id: sid,
+        title: accountId + ' / ' + projectId,
+        accountId: accountId,
+        projectId: projectId,
+        region: region,
+        projectPath: (window._projectSetup && window._projectSetup.projectPath) || null,
+        token: window._polyctxToken || null,
+        messages: [],
+      };
+      _sessions.push(newSess);
+      _saveSessions();
+      _activeSessionId = sid;
+      // Clear chat to welcome
+      messages = [];
+      _buildMsg = null; _reasonEl = null; _toolFeed = null; _streamBuf = '';
+      var chatEl = document.getElementById('chat');
+      chatEl.innerHTML = '';
+      var w = document.createElement('div'); w.className = 'welcome'; w.id = 'welcome';
+      w.innerHTML = '<h1>Build an AI agent</h1><p>Describe what you want to build and Agent Studio will create and deploy it automatically.</p><div class="welcome-chips"><div class="welcome-chip" onclick="useChip(this)">Banking assistant with balance check</div><div class="welcome-chip" onclick="useChip(this)">Hotel booking agent with cancellation flows</div><div class="welcome-chip" onclick="useChip(this)">Healthcare appointment scheduler</div><div class="welcome-chip" onclick="useChip(this)">Retail order tracking agent</div></div>';
+      chatEl.appendChild(w);
+    } else {
+      // Re-auth for existing session — update token
+      var sess = _sessions.find(function(s) { return s.id === _activeSessionId; });
+      if (sess) { sess.token = window._polyctxToken || null; _saveSessions(); }
+    }
+
+    _renderSessionList();
+    if (window._connectResolve) window._connectResolve(window._polyctxToken);
+  }, 1000);
+};
+
+// ── showConnectScreen override for re-auth ────────────────────────────────
+// When sendMessage triggers showConnectScreen, pre-fill with current session info
+var _origShowConnectScreen = window.showConnectScreen;
+window.showConnectScreen = async function() {
+  var sess = _sessions.find(function(s) { return s.id === _activeSessionId; });
+  if (sess) {
+    var acc = document.getElementById('setup-account'); if (acc) acc.value = sess.accountId || '';
+    var proj = document.getElementById('setup-project'); if (proj) proj.value = sess.projectId || '';
+    document.querySelectorAll('.region-btn').forEach(function(b) {
+      b.classList.toggle('active', b.dataset.region === sess.region);
+    });
+    window._selectedRegion = sess.region;
+  }
+  return _origShowConnectScreen ? _origShowConnectScreen() : Promise.resolve();
+};
+
+// ── addUserMsg ───────────────────────────────────────────────────────────
+window.addUserMsg = function(text) {
+  removeWelcome();
+  var chat = document.getElementById('chat');
+  var wrap = document.createElement('div'); wrap.className = 'msg-wrap';
+  var msg = document.createElement('div'); msg.className = 'msg user';
+  msg.innerHTML = '<div class="msg-avatar">👤</div><div class="msg-content"><div class="msg-name">You</div><div class="msg-body"></div></div>';
+  msg.querySelector('.msg-body').textContent = text;
+  wrap.appendChild(msg);
+  chat.appendChild(wrap);
+  chat.scrollTop = chat.scrollHeight;
+};
+
+// ── Expose new streaming functions ─────────────────────────────────────────
+window.addToolCard = addToolCard;
+
+function useChip(el) {
+  document.getElementById('input').value = el.textContent;
+  document.getElementById('input').focus();
+}
+
+function selectRegion(btn) {
+  document.querySelectorAll('.region-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  window._selectedRegion = btn.dataset.region;
+  var sb = document.getElementById('signin-btn');
+  if (sb) sb.onclick = function() { startDeviceFlow(window._selectedRegion); };
+}
+
+// ── Init: restore region + render session list ────────────────────────────
+(function() {
+  var r = localStorage.getItem('polyctx-region') || 'us-1';
+  window._selectedRegion = r;
+  document.querySelectorAll('.region-btn').forEach(function(b) { b.classList.toggle('active', b.dataset.region === r); });
+  var sb = document.getElementById('signin-btn');
+  if (sb) sb.onclick = function() { startDeviceFlow(window._selectedRegion); };
+  _renderSessionList();
+  // Auto-load last active session if any
+  if (_sessions.length > 0) {
+    var lastId = localStorage.getItem('ptb-active-session') || _sessions[_sessions.length - 1].id;
+    var last = _sessions.find(function(s) { return s.id === lastId; });
+    if (last) _switchSession(last.id);
+  }
+})();
+
+// Persist active session ID on switch
+var _origSwitch = _switchSession;
+_switchSession = function(id) {
+  localStorage.setItem('ptb-active-session', id);
+  _origSwitch(id);
+};
+
+// Save messages to session after each send
+var _origSendMsg = window.sendMessage;
+window.sendMessage = async function() {
+  await _origSendMsg.apply(this, arguments);
+  var sess = _sessions.find(function(s) { return s.id === _activeSessionId; });
+  if (sess) {
+    sess.messages = messages.slice();
+    // Update title from first user message
+    var first = messages.find(function(m) { return m.role === 'user'; });
+    if (first && first.content) {
+      sess.title = first.content.slice(0, 50) + (first.content.length > 50 ? '…' : '');
+    }
+    _saveSessions();
+    _renderSessionList();
+  }
+};
+
+// ── Re-auth SSE listener — triggered by las wrapper when token expires ────
+(function() {
+  function connectReauthEvents() {
+    const es = new EventSource('/api/reauth/events');
+    es.onmessage = function(e) {
+      try {
+        const data = JSON.parse(e.data);
+        showReauthModal(data.region, data.buildId);
+      } catch(_) {}
+    };
+    es.onerror = function() {
+      // Reconnect after 5s on error
+      es.close();
+      setTimeout(connectReauthEvents, 5000);
+    };
+  }
+  connectReauthEvents();
+
+  function showReauthModal(region, buildId) {
+    // Re-use existing connect screen but show a reauth message
+    var sess = _sessions.find(s => s.id === _buildingSessionId || s.id === _activeSessionId);
+    window._pendingNewSession = false;
+    if (sess) {
+      var acc = document.getElementById('setup-account'); if (acc) acc.value = sess.accountId || '';
+      var proj = document.getElementById('setup-project'); if (proj) proj.value = sess.projectId || '';
+      document.querySelectorAll('.region-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.region === (region || sess.region))
+      );
+      window._selectedRegion = region || sess.region;
+    }
+    // Show a banner above the connect screen
+    var banner = document.getElementById('reauth-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'reauth-banner';
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#7c3aed;color:#fff;padding:10px 20px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;';
+      banner.innerHTML = '<span>⚡ Build paused — token expired for <strong id="reauth-region">' + (region||'') + '</strong>. Sign in again to resume.</span>';
+      document.body.prepend(banner);
+    } else {
+      document.getElementById('reauth-region').textContent = region || '';
+      banner.style.display = 'flex';
+    }
+    // Open the connect/auth modal
+    showConnectScreen().then(() => {
+      if (banner) banner.style.display = 'none';
+    });
+  }
+})();
+
+</script>
+</body>
+</html>

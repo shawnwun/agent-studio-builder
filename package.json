@@ -1,0 +1,14 @@
+{
+  "name": "las-studio-v2",
+  "version": "2.0.0",
+  "description": "PolyAI Agent Builder v2 — WebSocket streaming via Prompt to Build",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "PTB_HOST=localhost:8788 PTB_API_KEY=ptb-dev-changeme node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.16.0"
+  }
+}
