@@ -330,3 +330,88 @@ Wait for the user's answers. Do not start building until you have all 7 answers.
 
 ## BUILD TASK
 __BUILD_TASK__
+
+---
+
+## experimental_config.json
+
+Every agent **must** have `agent_settings/experimental_config.json`. This controls ASR, VAT, barge-in, LLM, and conversation behaviour. Full schema at `~/local_agent_studio/src/poly/resources/experimental_config_schema.yaml`.
+
+### Recommended baseline (voice agent)
+```json
+{
+  "asr": {
+    "eager_final": true,
+    "model": "poly-latency",
+    "provider": "default",
+    "use_asr_lib": true
+  },
+  "barge_in": {
+    "is_enabled": true
+  },
+  "conversation_control": {
+    "min_chunk_size": 5
+  },
+  "eot": {
+    "provider": "smart_turn"
+  },
+  "llm": {
+    "include_kb_functions_in_flows": true,
+    "inference_parameters": {
+      "temperature": 0.4
+    }
+  },
+  "ragdoll": {
+    "previous_user_inputs_len": 1
+  },
+  "smart_vad": {
+    "is_enabled": true
+  },
+  "vad": {
+    "provider": "silero",
+    "vad_end": 400
+  }
+}
+```
+
+### Key options
+| Key | What it does |
+|-----|-------------|
+| `asr.model` | ASR model: `poly-latency` (default), `gpt-4o-transcribe` (OpenAI), `envera`, `voicemail` |
+| `asr.provider` | `default` (PolyProvider), `openai`, `google`, `riva` |
+| `asr.eager_final` | Transcribe faster with partial results — always `true` for voice |
+| `asr.use_asr_lib` | Enable PolyAI ASR library — always `true` unless told otherwise |
+| `asr.flow_overrides` | Override ASR model per flow/step (see NatWest example in agent-deployments) |
+| `barge_in.is_enabled` | Allow caller to interrupt the agent speaking — `true` for most voice agents |
+| `smart_vad.is_enabled` | Smart voice activity detection — `true` for all voice agents |
+| `vad.provider` | VAD engine: `silero` (recommended) |
+| `vad.vad_end` | Silence ms before end-of-turn: `400` (responsive) to `600` (patient) |
+| `eot.provider` | End-of-turn detection: `smart_turn` (recommended) |
+| `conversation_control.min_chunk_size` | Min tokens before speaking: `5` (fast) to `10` (smoother) |
+| `llm.inference_parameters.temperature` | LLM temperature: `0.4` recommended for voice |
+| `llm.include_kb_functions_in_flows` | Include KB topic functions inside flows — usually `true` |
+| `ragdoll.previous_user_inputs_len` | How many previous user turns to include in context: `1` recommended |
+| `audio_enhancement` | AI noise cancellation (ai-coustics) — use for noisy environments |
+| `memory.repeat_caller` | Remember state across calls — requires `state_keys` list |
+
+### Per-step ASR override example
+```json
+{
+  "asr": {
+    "flow_overrides": {
+      "payment_transfer": {
+        "steps": {
+          "Collect Amount": {
+            "model": "gpt-4o-transcribe",
+            "provider": "openai"
+          }
+        }
+      }
+    }
+  }
+}
+```
+Use this when a specific step needs better accuracy (e.g. numeric amounts, account numbers).
+
+**Always read the full schema before using any key not listed above:**
+`~/local_agent_studio/src/poly/resources/experimental_config_schema.yaml`
