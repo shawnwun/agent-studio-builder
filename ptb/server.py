@@ -137,21 +137,38 @@ def get_user(credentials: HTTPAuthorizationCredentials = Security(security)) -> 
 # Paths to LAS docs — loaded at runtime so the prompt stays up to date
 LAS_CLAUDE_MD       = Path.home() / "local_agent_studio/.claude/CLAUDE.md"
 LAS_DOCS_DIR        = Path.home() / "local_agent_studio/src/poly/docs"
-LAS_REFERENCE_MD    = Path.home() / "local_agent_studio/.claude/REFERENCE_PROJECTS.md"
+LAS_REFERENCE_MD    = Path.home() / "local_agent_studio/src/poly/docs/reference_projects.md"
+CLAUDE_TEMPLATE_MD  = Path.home() / "las-studio-v2/CLAUDE_TEMPLATE.md"
 
 def _load_las_docs_system_prompt() -> str:
-    """Load docs/*.md + REFERENCE_PROJECTS.md as system prompt.
-    CLAUDE.md is auto-loaded via ~/.claude/CLAUDE.md symlink — no need to inject it here."""
-    sections = ["# PolyAI LAS Documentation\n"]
+    """Load CLAUDE_TEMPLATE.md + docs/*.md + reference_projects.md as system prompt."""
+    sections = []
+
+    # 1. Build rules — most important, load first so they take priority
+    if CLAUDE_TEMPLATE_MD.exists():
+        sections.append("# Build Rules (CLAUDE_TEMPLATE.md)\n")
+        sections.append(CLAUDE_TEMPLATE_MD.read_text())
+    else:
+        log.warning(f"CLAUDE_TEMPLATE.md not found at {CLAUDE_TEMPLATE_MD}")
+
+    # 2. LAS format docs
     if LAS_DOCS_DIR.exists():
+        sections.append("\n# PolyAI LAS Documentation\n")
         for doc in sorted(LAS_DOCS_DIR.glob("*.md")):
+            if doc.name == "reference_projects.md":
+                continue  # loaded separately below
             sections.append(f"\n## {doc.name}\n")
             sections.append(doc.read_text())
+
+    # 3. Reference projects
     if LAS_REFERENCE_MD.exists():
         sections.append("\n# Reference Projects (agent-deployments)\n")
         sections.append(LAS_REFERENCE_MD.read_text())
+    else:
+        log.warning(f"reference_projects.md not found at {LAS_REFERENCE_MD}")
+
     result = "\n".join(sections)
-    log.info(f"LAS docs+refs loaded: {len(result)} chars")
+    log.info(f"System prompt loaded: {len(result)} chars")
     return result
 
 
