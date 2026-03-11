@@ -571,6 +571,7 @@ function finishStream(branch, assistantText) {
   // Reset per-build state
   _stream = null; _streamTextNode = null; _streamCursor = null;
   _streamToolCount = 0; _streamBuf = ''; _reasonBuf = ''; _inReasoning = true;
+  _agentBody = null; // force new agent bubble after next user message
   scrollBottom();
 }
 
