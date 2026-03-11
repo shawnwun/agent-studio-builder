@@ -194,34 +194,58 @@ Region:     {request.region}
 ## Current instruction:
 {request.prompt}
 
-## Step 1 — Pick reference projects BEFORE writing any files
+## Step 1 — Understand
 
-From the REFERENCE_PROJECTS.md in your system prompt, identify the 3-5 most relevant projects for this build based on vertical, use cases, and patterns.
+Read the current project directory thoroughly before doing anything else.
 
-Before reading any files, output a short block in this exact format so the user can see your reasoning:
+- List all files and folders in the project
+- Read `agent_settings/rules.txt` if it exists — this is the primary LLM prompt
+- Read any existing flows, topics, functions, and entities
+- Understand the user's build request: vertical, channel (voice/chat), use cases, flows needed, entities needed
+
+If you are unsure what the customer wants, re-read the request and the existing project files until you have a clear picture.
+
+## Step 2 — Plan
+
+Before writing a single file, decide on your approach:
+
+1. **Reference projects** — from `reference_projects.md`, identify the 2-4 most relevant projects by vertical, use cases, and channel. Output this block so the user can see your reasoning:
 
 ```
 📚 Reference projects selected:
 1. <project name> (<path>) — <one sentence why>
 2. <project name> (<path>) — <one sentence why>
-3. <project name> (<path>) — <one sentence why>
 ```
 
-Then for each selected project, read its key files:
-- `~/agent-deployments/agents/<path>/agent_settings/rules.txt`
-- `~/agent-deployments/agents/<path>/flows/` (list, then read 1-2 flow YAMLs)
-- `~/agent-deployments/agents/<path>/topics/` (list, then read 2-3 topic YAMLs)
-- `~/agent-deployments/agents/<path>/functions/` (list, then read any notable functions)
+2. **Read those reference projects** — for each one, read:
+   - `agent_settings/rules.txt`
+   - `flows/` — list, then read 1-2 flow YAMLs
+   - `topics/` — list, then read 2-3 topic YAMLs
+   - `functions/` — list, read notable ones
+   - `agent_settings/experimental_config.json`
 
-Use these as your structural and content reference. Do not copy verbatim — adapt to the new requirement.
+3. **If no obvious reference matches** — scan through several projects in `~/agent-deployments/agents/` to find relevant patterns (a specific flow type, entity type, or handoff pattern)
 
-## Step 2 — Build the agent
+4. **Outline your build** — briefly list the flows, topics, functions, and entities you will create before writing anything
 
-- Follow the LAS format from the documentation in your system prompt exactly
-- Read existing files in the current project dir before overwriting anything
-- Invent all details not specified (agent name, mock data, FAQs, greeting, etc.)
-- Build a complete working agent — every required file must be present
-- name functions after the EVENT that triggered them (e.g. `date_provided` not `store_date`)
+## Step 3 — Build
+
+Execute your plan:
+
+- Follow the LAS format from your system prompt exactly
+- Read existing files before overwriting — do not clobber work already done
+- Invent all details not specified (agent name, mock data, FAQs, greeting, tone)
+- Build a **complete** working agent — every required file must be present
+- Name functions after the EVENT that triggered them (e.g. `date_provided` not `store_date`)
+- Include a well-configured `agent_settings/experimental_config.json` (use baseline from your system prompt)
+
+## Step 4 — Push
+
+Once the build is complete:
+
+1. Write a brief build summary — list flows, topics, key functions, any design decisions made
+2. Run `las push --force --skip-validation` to create a remote branch in Agent Studio
+3. Report the branch name from the push output so the user can merge it
 """
 
 def _format_tool_label(tool_name: str, tool_input: dict) -> dict | None:
